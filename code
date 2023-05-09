@@ -1,0 +1,194 @@
+from tkinter import * 
+import random
+
+class Game(Frame):
+
+
+    Color_Cells = {3: "#f79757",6: "#ed670e",12: "#c20f06",24: "#286bb8",
+                   48: "#fc79f2",96: "#63ba30",192: "#872322",384: "#fce130",
+                   768: "#ffdb4a",1536: "#f0b922",3072: "#fad74d"}
+
+    Color_CellNumber = {3: "#ffffff",6: "#ffffff",12: "#ffffff",24: "#ffffff",
+                        48: "#ffffff",96: "#ffffff",192: "#ffffff",384: "#ffffff",
+                        768: "#ffffff",1536: "#ffffff",3072: "#ffffff"}
+
+    def _init_(self):
+        Frame._init_(self)
+        self.grid()
+        self.master.title("3072 game")
+        self.icon = PhotoImage(file="512x512bb.png")
+        self.master.iconphoto(True,self.icon)
+
+        self.grid_main = Frame(
+            self, bg="black", bd=3, width=600, height=600
+        )
+        self.grid_main.grid(pady=(110,0))
+
+        self.overlay()
+        self.start()
+        self.master.bind("<Left>", self.Move_Left)
+        self.master.bind("<Right>", self.Move_Right)
+        self.master.bind("<Up>", self.Move_Up)
+        self.master.bind("<Down>", self.Move_Down)
+
+        self.mainloop()
+
+    def overlay(self):
+        self.grids = []
+        for i in range(4):
+            new_row = []
+            for j in range(4):
+                frame_cells = Frame(self.grid_main,bg="#bdb9b9",width=150,height=150)
+                frame_cells.grid(row=i, column=j, padx=5, pady=5)
+                cell_number = Label(self.grid_main, bg="#bdb9b9")
+                cell_data = {"frame":frame_cells, "number": cell_number}
+                cell_number.grid(row=i, column=j)
+                new_row.append(cell_data)
+            self.grids.append(new_row)
+
+        game_score = Frame(self)
+        game_score.place(relx=0.5, y=60, anchor="center")
+        Label(game_score,text="Score",font=("Verdana", 24)).grid(row=0)
+        self.label_score = Label(game_score, text="0", font= ("Helvetica", 48, "bold"))
+        self.label_score.grid(row=1)
+
+    def start(self):
+        self.matrix = [[0] * 4 for i in range(4)]
+
+        row = random.randint(0,3)
+        col = random.randint(0,3)
+        self.matrix[row][col] = 3
+        self.grids[row][col]["frame"].configure(bg=Game.Color_Cells[3])
+        self.grids[row][col]["number"].configure(bg=Game.Color_Cells[3],fg=Game.Color_CellNumber[3],font=("Helvetica", 55, "bold"),text="3")
+        while(self.matrix[row][col] != 0):
+            row = random.randint(0,3)
+            col = random.randint(0,3)
+        self.matrix[row][col] = 3
+        self.grids[row][col]["frame"].configure(bg=Game.Color_Cells[3])
+        self.grids[row][col]["number"].configure(bg=Game.Color_Cells[3],fg=Game.Color_CellNumber[3],font=("Helvetica", 55, "bold"),text="3")
+
+        self.score = 0
+
+    def compress(self):
+        Matrix_1 = [[0] * 4 for _ in range(4)]
+        for i in range(4):
+            position_fill = 0
+            for j in range(4):
+                if self.matrix[i][j] != 0:
+                    Matrix_1[i][position_fill] = self.matrix[i][j]
+                    position_fill += 1
+        self.matrix = Matrix_1
+
+    def merge(self):
+        for i in range(4):
+            for j in range(3):
+                if self.matrix[i][j] != 0 and self.matrix[i][j] == self .matrix[i][j + 1]:
+                    self.matrix[i][j] *= 2
+                    self.matrix[i][j + 1] = 0
+                    self.score += self.matrix[i][j]
+
+    def reverse(self):
+        Matrix_1 = []
+        for i in range(4):
+            Matrix_1.append([])
+            for j in range(4):
+                Matrix_1[i].append(self.matrix[i][3-j])
+        self.matrix = Matrix_1
+
+    def transpose(self):
+        Matrix_1 = [[0] * 4 for _ in range(4)]
+        for i in range(4):
+            for j in range(4):
+                Matrix_1[i][j] = self.matrix[j][i]
+        self.matrix = Matrix_1
+
+    def add_new(self):
+        row = random.randint(0,3)
+        col = random.randint(0,3)
+        while(self.matrix[row][col] != 0):
+            row = random.randint(0,3)
+            col = random.randint(0,3)
+        self.matrix[row][col] = random.choice([3,6])
+
+    def Grid_update(self):
+        for i in range(4):
+            for j in range(4):
+                cell_value = self.matrix[i][j]
+                if cell_value == 0:
+                    self.grids[i][j]["frame"].configure(bg="#bdb9b9")
+                    self.grids[i][j]["number"].configure(bg="#bdb9b9", text="")
+                else:
+                    self.grids[i][j]["frame"].configure(bg=Game.Color_Cells[cell_value])
+                    self.grids[i][j]["number"].configure(bg=Game.Color_Cells[cell_value],fg=Game.Color_CellNumber[cell_value],font=("Helvetica", 55, "bold"),text=str(cell_value))
+        self.label_score.configure(text=self.score)
+        self.update_idletasks()
+
+    def Move_Left(self, event):
+        self.compress()
+        self.merge()
+        self.compress()
+        self.add_new()
+        self.Grid_update()
+        self.check_status()
+
+    def Move_Right(self, event):
+        self.reverse()
+        self.compress()
+        self.merge()
+        self.compress()
+        self.reverse()
+        self.add_new()
+        self.Grid_update()
+        self.check_status()
+
+    def Move_Up(self, event):
+        self.transpose()
+        self.compress()
+        self.merge()
+        self.compress()
+        self.transpose()
+        self.add_new()
+        self.Grid_update() 
+        self.check_status()
+
+    def Move_Down(self, event):
+        self.transpose()
+        self.reverse()
+        self.compress()
+        self.merge()       
+        self.compress()
+        self.reverse()
+        self.transpose()
+        self.add_new()
+        self.Grid_update()
+        self.check_status()
+
+    def check_horizontal(self):
+        for i in range(4):
+            for j in range(3):
+                if self.matrix[i][j] == self.matrix[i][j + 1]:
+                    return True
+        return False
+
+    def check_vertical(self):
+        for i in range(3):
+            for j in range(4):
+                if self.matrix[i][j] == self.matrix[i + 1][j]:
+                    return True
+        return False
+
+    def check_status(self):
+        if any(3072 in row for row in self.matrix):
+            game_over_frame = Frame(self.grid_main, borderwidth=2)
+            game_over_frame.place(relx=0.5, rely= 0.5, anchor="center")
+            label1=Label(game_over_frame,text = "YOU WIN!!",bg="#ffcc00",fg="#ffffff",font=("Helvetica", 48, "bold"))
+            label1.pack()
+        elif not any(0 in row for row in self. matrix) and not self.check_horizontal() and not self.check_vertical():
+            game_over_frame = Frame(self.grid_main, borderwidth=2)
+            game_over_frame.place(relx=0.5, rely= 0.5, anchor="center")
+            label2=Label(game_over_frame,text = "GAME OVER!!",bg="#a39489",fg="#ffffff",font=("Helvetica", 48, "bold"))
+            label2.pack()
+        
+if _name_ == "_main_":
+    Game()
+
